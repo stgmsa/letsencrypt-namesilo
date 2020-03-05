@@ -19,15 +19,25 @@ function DEBUG_LOG() {
     echo "CERTBOT_VALIDATION            : ${CERTBOT_VALIDATION}" >>"${LOG_FILE_NAME}"
     echo "CERTBOT_TOKEN(HTTP-01)        : ${CERTBOT_TOKEN}" >>"${LOG_FILE_NAME}"
     echo "CERTBOT_AUTH_OUTPUT(cleanup)  : ${CERTBOT_AUTH_OUTPUT}" >>"${LOG_FILE_NAME}"
+    echo "-------------------------------------------------------" >>"${LOG_FILE_NAME}"
+    echo "" >>"${LOG_FILE_NAME}"
+    echo "" >>"${LOG_FILE_NAME}"
+    echo "" >>"${LOG_FILE_NAME}"
 }
 
 function GET_API_BASE_URL() {
-    local API_KEY=""    # YOUR NAMESILO API KEY HERE.
+    local API_KEY="" # FILL YOUR NAMESILO API KEY HERE TO OVERRIDE NAMESILO API KEY AUTO DETECTION.
     local VERSION="1"
     local TYPE="xml"
     local API_BASE_URL="https://www.namesilo.com/api"
 
     local ACTION=$1
+    local API_KEY_AUTO_DETECT=""
+
+    API_KEY_AUTO_DETECT="$(FIND_NAMESILO_API_KEY_FROM_PWD)"
+    if [ -n "${API_KEY_AUTO_DETECT}" ] && [ -z "${API_KEY}" ]; then
+        API_KEY=${API_KEY_AUTO_DETECT}
+    fi
 
     local URL="${API_BASE_URL}/${ACTION}?version=${VERSION}&type=${TYPE}&key=${API_KEY}"
     echo "${URL}"
@@ -89,11 +99,17 @@ function POLL() {
     local CHECK_VALIDATION=$2
 
     local MAX=1000
+    local MIN_CONTINUOUS_COUNT=20
     local CURRENT=1
 
-    for ((integer = 1; integer > $(CHECK_ACME_CHALLENGE_RESULT "${CHECK_DOMAIN}" "${CHECK_VALIDATION}"); CURRENT++)); do
-        echo "ROUND: ${CURRENT}"
-
+    for ((CONTINUOUS_SUCCESS = 0; CONTINUOUS_SUCCESS < MIN_CONTINUOUS_COUNT; CURRENT++)); do
+        if [ -n "$(CHECK_ACME_CHALLENGE_RESULT "${CHECK_DOMAIN}" "${CHECK_VALIDATION}")" ]; then
+            echo "ROUND: ${CURRENT}, SUCCESS"
+            CONTINUOUS_SUCCESS ++
+        else
+            echo "ROUND: ${CURRENT}"
+            CONTINUOUS_SUCCESS=0
+        fi
         if [ ${CURRENT} -gt ${MAX} ]; then
             echo "MAX RETRIES ${MAX} REACHED. TERMINATED"
             exit 1
@@ -102,8 +118,34 @@ function POLL() {
         CHECK_QUIT_SIGNAL
     done
 
+#    for ((integer = 1; integer > $(CHECK_ACME_CHALLENGE_RESULT "${CHECK_DOMAIN}" "${CHECK_VALIDATION}"); CURRENT++)); do
+#        echo "ROUND: ${CURRENT}"
+#
+#        if [ ${CURRENT} -gt ${MAX} ]; then
+#            echo "MAX RETRIES ${MAX} REACHED. TERMINATED"
+#            exit 1
+#        fi
+#        sleep 2
+#        CHECK_QUIT_SIGNAL
+#    done
+
     echo "CHECK FINISHED AFTER POLLING ${CURRENT} TIMES"
     exit 0
+}
+
+function FIND_NAMESILO_API_KEY_FROM_PWD() {
+    local PWD=""
+    local NAMESILO_API_KEY_FILE=""
+    local NAMESILO_API_KEY=""
+
+    PWD="$(pwd)"
+    NAMESILO_API_KEY_FILE="$(ls -la $PWD | grep "NAMESILO-API-KEY-")"
+
+    if [ -n "${NAMESILO_API_KEY_FILE}" ]; then
+        NAMESILO_API_KEY="$(echo $NAMESILO_API_KEY_FILE | awk '{print $NF}' | awk -F '-' '{print $NF}')"
+        echo $NAMESILO_API_KEY
+        return $?
+    fi
 }
 
 DEBUG_LOG
