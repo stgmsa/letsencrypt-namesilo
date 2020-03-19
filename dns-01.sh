@@ -105,7 +105,7 @@ function POLL() {
     for ((CONTINUOUS_SUCCESS = 0; CONTINUOUS_SUCCESS < MIN_CONTINUOUS_COUNT; CURRENT++)); do
         if [ -n "$(CHECK_ACME_CHALLENGE_RESULT "${CHECK_DOMAIN}" "${CHECK_VALIDATION}")" ]; then
             echo "ROUND: ${CURRENT}, SUCCESS"
-            CONTINUOUS_SUCCESS ++
+            CONTINUOUS_SUCCESS=${CONTINUOUS_SUCCESS}+1
         else
             echo "ROUND: ${CURRENT}"
             CONTINUOUS_SUCCESS=0
@@ -118,16 +118,16 @@ function POLL() {
         CHECK_QUIT_SIGNAL
     done
 
-#    for ((integer = 1; integer > $(CHECK_ACME_CHALLENGE_RESULT "${CHECK_DOMAIN}" "${CHECK_VALIDATION}"); CURRENT++)); do
-#        echo "ROUND: ${CURRENT}"
-#
-#        if [ ${CURRENT} -gt ${MAX} ]; then
-#            echo "MAX RETRIES ${MAX} REACHED. TERMINATED"
-#            exit 1
-#        fi
-#        sleep 2
-#        CHECK_QUIT_SIGNAL
-#    done
+    #    for ((integer = 1; integer > $(CHECK_ACME_CHALLENGE_RESULT "${CHECK_DOMAIN}" "${CHECK_VALIDATION}"); CURRENT++)); do
+    #        echo "ROUND: ${CURRENT}"
+    #
+    #        if [ ${CURRENT} -gt ${MAX} ]; then
+    #            echo "MAX RETRIES ${MAX} REACHED. TERMINATED"
+    #            exit 1
+    #        fi
+    #        sleep 2
+    #        CHECK_QUIT_SIGNAL
+    #    done
 
     echo "CHECK FINISHED AFTER POLLING ${CURRENT} TIMES"
     exit 0
