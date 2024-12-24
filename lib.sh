@@ -19,7 +19,7 @@ function CLEAR_QUIT_SIGNAL() {
 
 function QUERY_DNS_TXT_RECORD() {
     local DOMAIN_NAME=$1
-    RES=$(dig -t txt "${DOMAIN_NAME}" @8.8.8.8 +trace | grep "${DOMAIN_NAME}" | grep --color "TXT")
+    RES=$(dig -t txt "${DOMAIN_NAME}" @8.8.8.8 | grep -E "^${DOMAIN_NAME}" | grep --color "TXT")
     echo "${RES}"
 }
 
@@ -33,19 +33,20 @@ function CHECK_ACME_CHALLENGE_RESULT() {
 }
 
 function DEBUG_LOG() {
-    local YMD_FOR_FILENAME=$(date +"%Y%m%d_%H%M%S")
-    local YMD_FOR_HUMAN=$(date +"%Y-%m-%d %H:%M:%S")
+    # if you want a date-liked file name: $(date +"%Y%m%d_%H%M%S")
+
+    local time_for_human
+    time_for_human=$(date +"%Y-%m-%d %H:%M:%S")
     local LOG_FILE_NAME="/root/lets-encrypt-debug.log"
 
-    echo "TIME: ${TIME_FOR_HUMAN}" >>"${LOG_FILE_NAME}"
-    echo "CERTBOT_DOMAIN                : ${CERTBOT_DOMAIN}" >>"${LOG_FILE_NAME}"
-    echo "CERTBOT_VALIDATION            : ${CERTBOT_VALIDATION}" >>"${LOG_FILE_NAME}"
-    echo "CERTBOT_TOKEN(HTTP-01)        : ${CERTBOT_TOKEN}" >>"${LOG_FILE_NAME}"
-    echo "CERTBOT_AUTH_OUTPUT(cleanup)  : ${CERTBOT_AUTH_OUTPUT}" >>"${LOG_FILE_NAME}"
-    echo "-------------------------------------------------------" >>"${LOG_FILE_NAME}"
-    echo "" >>"${LOG_FILE_NAME}"
-    echo "" >>"${LOG_FILE_NAME}"
-    echo "" >>"${LOG_FILE_NAME}"
+    {
+        echo "time: ${time_for_human}"
+        echo "CERTBOT_DOMAIN                : ${CERTBOT_DOMAIN}"
+        echo "CERTBOT_VALIDATION            : ${CERTBOT_VALIDATION}"
+        echo "CERTBOT_TOKEN(HTTP-01)        : ${CERTBOT_TOKEN}"
+        echo "CERTBOT_AUTH_OUTPUT(cleanup)  : ${CERTBOT_AUTH_OUTPUT}"
+        echo "-------------------------------------------------------"
+    } >> ${LOG_FILE_NAME}
 }
 
 function POLL() {
@@ -53,7 +54,7 @@ function POLL() {
     local CHECK_VALIDATION=$2
 
     local MAX=1000
-    local MIN_CONTINUOUS_COUNT=20
+    local MIN_CONTINUOUS_COUNT=8
     local CURRENT=1
 
     local CHECK_RESULT=""
